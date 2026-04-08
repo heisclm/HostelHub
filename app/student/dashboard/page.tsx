@@ -119,7 +119,7 @@ export default function StudentDashboard() {
                           </div>
                           <div className="text-right shrink-0">
                             <p className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5 md:mb-1">Room</p>
-                            <p className="text-xl md:text-2xl font-heading font-bold tracking-tighter">{booking.roomId}</p>
+                            <p className="text-xl md:text-2xl font-heading font-bold tracking-tighter">{booking.roomNumber || booking.roomId}</p>
                           </div>
                         </div>
                         

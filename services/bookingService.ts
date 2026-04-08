@@ -49,6 +49,7 @@ export const createBooking = async (
       const newBooking: Omit<Booking, 'id'> = {
         hostelId,
         roomId,
+        roomNumber: roomData.roomNumber,
         studentId,
         studentEmail,
         status: 'pending',

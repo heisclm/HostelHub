@@ -99,7 +99,10 @@ export default function ManagerBookingsPage() {
                       </td>
                       <td className="p-4 md:p-6 border-r border-slate-900">
                         <p className="text-xs md:text-sm font-bold uppercase tracking-wider truncate max-w-[150px] md:max-w-none">{booking.studentEmail}</p>
-                        <p className="text-[8px] md:text-[10px] text-slate-400 font-mono mt-1">ID: {booking.id?.substring(0, 8)}...</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-[8px] md:text-[10px] text-slate-400 font-mono">ID: {booking.id?.substring(0, 8)}...</p>
+                          <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest bg-slate-100 px-1.5 py-0.5">Room {booking.roomNumber || 'N/A'}</span>
+                        </div>
                       </td>
                       <td className="p-4 md:p-6 text-xs md:text-sm font-bold border-r border-slate-900">
                         GH₵{booking.amount}

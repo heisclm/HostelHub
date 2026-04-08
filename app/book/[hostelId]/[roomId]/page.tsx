@@ -13,7 +13,7 @@ export default function BookingPage() {
   const router = useRouter();
   const hostelId = params.hostelId as string;
   const roomId = params.roomId as string;
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
 
   const { hostel, isLoading: hostelLoading } = useHostelDetails(hostelId);
   const { room, isLoading: roomLoading } = useRoom(hostelId, roomId);
@@ -167,7 +167,7 @@ export default function BookingPage() {
             <div className="space-y-6">
               <div className="flex justify-between items-center text-sm">
                 <span className="font-bold uppercase tracking-widest text-slate-500 text-xs">Student Name</span>
-                <span className="font-bold text-slate-900">{user?.displayName || user?.email}</span>
+                <span className="font-bold text-slate-900">{userData?.displayName || user?.displayName || user?.email}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="font-bold uppercase tracking-widest text-slate-500 text-xs">Semester Fee</span>

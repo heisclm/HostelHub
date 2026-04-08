@@ -80,9 +80,6 @@ npm install --legacy-peer-deps
 ```
 
 If you encounter issues with form validation libraries, ensure all core dependencies are present:
-```bash
-npm install react-hook-form @hookform/resolvers zod --legacy-peer-deps
-```
 
 ### 4. Run Development Server
 ```bash

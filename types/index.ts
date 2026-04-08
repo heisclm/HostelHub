@@ -48,6 +48,7 @@ export interface Booking {
   id?: string;
   hostelId: string;
   roomId: string;
+  roomNumber?: string;
   studentId: string;
   studentEmail: string;
   status: 'pending' | 'approved' | 'confirmed' | 'cancelled';
