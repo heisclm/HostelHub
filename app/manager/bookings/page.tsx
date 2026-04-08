@@ -20,10 +20,10 @@ export default function ManagerBookingsPage() {
     }
   }, [user, userData, router]);
 
-  const handleUpdateStatus = async (id: string, status: 'pending' | 'paid' | 'cancelled') => {
+  const handleUpdateStatus = async (id: string, paymentStatus: 'pending' | 'paid' | 'cancelled', status?: 'pending' | 'approved' | 'confirmed' | 'cancelled') => {
     try {
-      await updateBookingPaymentStatus(id, status);
-      toast.success(`Booking status updated to ${status}`);
+      await updateBookingPaymentStatus(id, paymentStatus, status);
+      toast.success(`Booking updated successfully`);
       mutateBookings();
     } catch (error: any) {
       toast.error(error.message || 'Failed to update status');
@@ -121,16 +121,25 @@ export default function ManagerBookingsPage() {
                       </td>
                       <td className="p-4 md:p-6">
                         <div className="flex flex-wrap gap-2">
+                          {booking.status === 'pending' && (
+                            <button 
+                              onClick={() => handleUpdateStatus(booking.id!, 'pending', 'approved')}
+                              className="px-3 py-1.5 md:px-4 md:py-2 bg-slate-900 text-white text-[8px] md:text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-colors"
+                            >
+                              Approve Application
+                            </button>
+                          )}
+                          
                           {booking.paymentStatus === 'pending' && (
                             <>
                               <button 
-                                onClick={() => handleUpdateStatus(booking.id!, 'paid')}
-                                className="px-3 py-1.5 md:px-4 md:py-2 bg-slate-900 text-white text-[8px] md:text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-colors"
+                                onClick={() => handleUpdateStatus(booking.id!, 'paid', 'confirmed')}
+                                className="px-3 py-1.5 md:px-4 md:py-2 border border-slate-900 text-slate-900 text-[8px] md:text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-colors"
                               >
-                                Mark Paid
+                                Mark Paid (Offline)
                               </button>
                               <button 
-                                onClick={() => handleUpdateStatus(booking.id!, 'cancelled')}
+                                onClick={() => handleUpdateStatus(booking.id!, 'cancelled', 'cancelled')}
                                 className="px-3 py-1.5 md:px-4 md:py-2 border border-red-200 text-red-500 text-[8px] md:text-[10px] font-bold uppercase tracking-widest hover:bg-red-50 transition-colors"
                               >
                                 Cancel
@@ -139,7 +148,7 @@ export default function ManagerBookingsPage() {
                           )}
                           {booking.paymentStatus === 'paid' && (
                             <button 
-                              onClick={() => handleUpdateStatus(booking.id!, 'cancelled')}
+                              onClick={() => handleUpdateStatus(booking.id!, 'cancelled', 'cancelled')}
                               className="px-3 py-1.5 md:px-4 md:py-2 border border-slate-200 text-slate-400 text-[8px] md:text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-colors"
                             >
                               Refund/Cancel
