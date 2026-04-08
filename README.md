@@ -74,7 +74,7 @@ This project uses a `firebase-applet-config.json` file in the root directory to 
 
 ### 3. Install Dependencies
 ```bash
-npm install
+npm install --legacy-peer-deps
 ```
 
 ### 4. Run Development Server
