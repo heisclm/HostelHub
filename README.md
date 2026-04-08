@@ -73,8 +73,15 @@ This project uses a `firebase-applet-config.json` file in the root directory to 
 ```
 
 ### 3. Install Dependencies
+Due to certain third-party libraries (like `react-paystack`) not yet officially supporting React 19 peer dependencies, you **must** use the `--legacy-peer-deps` flag during installation:
+
 ```bash
 npm install --legacy-peer-deps
+```
+
+If you encounter issues with form validation libraries, ensure all core dependencies are present:
+```bash
+npm install react-hook-form @hookform/resolvers zod --legacy-peer-deps
 ```
 
 ### 4. Run Development Server
