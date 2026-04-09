@@ -73,7 +73,7 @@ export default function ManagerAnalytics() {
           <div className="p-8 border-r border-b border-slate-900 bg-slate-900 text-white">
             <div className="flex items-center gap-3 mb-6">
               <DollarSign className="w-5 h-5 text-slate-400" />
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Total Revenue</h3>
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Total Earned</h3>
             </div>
             <p className="text-4xl md:text-5xl font-heading font-bold tracking-tighter">
               GH₵{data.totalRevenue.toLocaleString()}
@@ -82,21 +82,21 @@ export default function ManagerAnalytics() {
           
           <div className="p-8 border-r border-b border-slate-900 bg-white">
             <div className="flex items-center gap-3 mb-6">
-              <TrendingUp className="w-5 h-5 text-slate-400" />
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Total Bookings</h3>
+              <CreditCard className="w-5 h-5 text-green-500" />
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Total Paid Out</h3>
             </div>
-            <p className="text-4xl md:text-5xl font-heading font-bold tracking-tighter">
-              {data.totalBookings}
+            <p className="text-4xl md:text-5xl font-heading font-bold tracking-tighter text-green-600">
+              GH₵{data.totalPaid.toLocaleString()}
             </p>
           </div>
 
-          <div className="p-8 border-r border-b border-slate-900 bg-white">
+          <div className={`p-8 border-r border-b border-slate-900 ${data.pendingBalance > 0 ? 'bg-amber-50' : 'bg-white'}`}>
             <div className="flex items-center gap-3 mb-6">
-              <CreditCard className="w-5 h-5 text-green-500" />
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Paid Bookings</h3>
+              <AlertCircle className={`w-5 h-5 ${data.pendingBalance > 0 ? 'text-amber-500' : 'text-slate-400'}`} />
+              <h3 className={`text-[10px] font-bold uppercase tracking-widest ${data.pendingBalance > 0 ? 'text-amber-600' : 'text-slate-400'}`}>Pending Balance</h3>
             </div>
-            <p className="text-4xl md:text-5xl font-heading font-bold tracking-tighter text-green-600">
-              {data.paidBookings}
+            <p className={`text-4xl md:text-5xl font-heading font-bold tracking-tighter ${data.pendingBalance > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
+              GH₵{data.pendingBalance.toLocaleString()}
             </p>
           </div>
 
@@ -164,6 +164,42 @@ export default function ManagerAnalytics() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Payout History */}
+        <div className="border border-slate-900">
+          <div className="p-6 md:p-8 border-b border-slate-900 bg-slate-50">
+            <h3 className="text-lg font-bold uppercase tracking-wider">Payout History</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-900 bg-slate-50">
+                  <th className="p-4 md:p-6 text-[10px] font-bold uppercase tracking-widest text-slate-500">Date</th>
+                  <th className="p-4 md:p-6 text-[10px] font-bold uppercase tracking-widest text-slate-500">Amount</th>
+                  <th className="p-4 md:p-6 text-[10px] font-bold uppercase tracking-widest text-slate-500">Reference</th>
+                  <th className="p-4 md:p-6 text-[10px] font-bold uppercase tracking-widest text-slate-500">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.payoutHistory.map((payout: any) => (
+                  <tr key={payout.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                    <td className="p-4 md:p-6 text-sm font-bold">{payout.date.toLocaleDateString()}</td>
+                    <td className="p-4 md:p-6 text-sm font-bold text-green-600">GH₵{payout.amount.toLocaleString()}</td>
+                    <td className="p-4 md:p-6 text-sm text-slate-600">{payout.reference}</td>
+                    <td className="p-4 md:p-6 text-sm text-slate-600">{payout.notes}</td>
+                  </tr>
+                ))}
+                {data.payoutHistory.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-xs font-bold uppercase tracking-widest text-slate-400">
+                      No payouts recorded yet
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 

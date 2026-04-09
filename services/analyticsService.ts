@@ -190,14 +190,37 @@ export const getManagerAnalytics = async (managerId: string) => {
     // Sort and slice recent transactions
     recentTransactions.sort((a, b) => b.date.getTime() - a.date.getTime());
     
+    // Fetch payouts for this manager
+    const payoutsSnapshot = await getDocs(query(collection(db, 'payouts'), where('managerId', '==', managerId)));
+    const payouts = payoutsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+
+    let totalPaid = 0;
+    const payoutHistory: any[] = [];
+    payouts.forEach(p => {
+      totalPaid += p.amount;
+      payoutHistory.push({
+        id: p.id,
+        amount: p.amount,
+        reference: p.reference || 'N/A',
+        notes: p.notes || '',
+        date: p.createdAt?.toDate ? p.createdAt.toDate() : new Date()
+      });
+    });
+    payoutHistory.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    const pendingBalance = totalRevenue - totalPaid;
+
     return {
       totalRevenue,
+      totalPaid,
+      pendingBalance,
       totalBookings: allBookings.length,
       paidBookings,
       unpaidBookings,
       occupancyRate,
       bookingTrends,
-      recentTransactions: recentTransactions.slice(0, 10)
+      recentTransactions: recentTransactions.slice(0, 10),
+      payoutHistory
     };
 
   } catch (error: any) {

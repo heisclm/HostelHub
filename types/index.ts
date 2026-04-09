@@ -76,6 +76,15 @@ export interface Complaint {
   resolvedAt?: any;
 }
 
+export interface Payout {
+  id?: string;
+  managerId: string;
+  amount: number;
+  reference?: string;
+  notes?: string;
+  createdAt: any;
+}
+
 export interface Inquiry {
   id?: string;
   hostelId: string;
