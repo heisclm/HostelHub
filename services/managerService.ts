@@ -1,20 +1,27 @@
 import { db, storage } from '@/lib/firebase';
 import { collection, addDoc, getDocs, query, where, updateDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { createNotification } from './notificationService';
+import { sendManagerVerificationEmail } from './emailService';
 
 export interface ManagerVerification {
   id?: string;
   userId: string;
+  managerName?: string;
+  managerEmail?: string;
   idDocumentUrl: string;
   propertyProofUrl: string;
   status: 'pending' | 'verified' | 'rejected';
   submittedAt: any;
   updatedAt?: any;
   adminNotes?: string;
+  user?: any; // Fallback for older records
 }
 
 export const submitVerification = async (
   userId: string,
+  managerName: string | undefined,
+  managerEmail: string | undefined,
   idDocumentFile: File,
   propertyProofFile: File
 ) => {
@@ -32,6 +39,8 @@ export const submitVerification = async (
     // 3. Create Verification Document
     const verificationData = {
       userId,
+      managerName: managerName || 'Unknown',
+      managerEmail: managerEmail || 'No email provided',
       idDocumentUrl,
       propertyProofUrl,
       status: 'pending',
@@ -39,6 +48,20 @@ export const submitVerification = async (
     };
 
     const docRef = await addDoc(collection(db, 'managerVerifications'), verificationData);
+    
+    // Notify admins
+    const adminsQuery = query(collection(db, 'users'), where('role', '==', 'admin'));
+    const adminsSnapshot = await getDocs(adminsQuery);
+    adminsSnapshot.forEach((adminDoc) => {
+      createNotification(
+        adminDoc.id,
+        'verification',
+        'New Manager Application',
+        `${managerName || 'A new manager'} has submitted verification documents.`,
+        '/admin/verifications'
+      );
+    });
+
     return docRef.id;
   } catch (error: any) {
     console.error('Error submitting verification:', error);
@@ -78,11 +101,41 @@ export const getAllVerifications = async () => {
 export const updateVerificationStatus = async (verificationId: string, status: 'verified' | 'rejected', adminNotes?: string) => {
   try {
     const verificationRef = doc(db, 'managerVerifications', verificationId);
+    const verificationDoc = await getDoc(verificationRef);
+    
+    if (!verificationDoc.exists()) {
+      throw new Error('Verification not found');
+    }
+    
+    const verificationData = verificationDoc.data() as ManagerVerification;
+
     await updateDoc(verificationRef, {
       status,
       adminNotes: adminNotes || '',
       updatedAt: serverTimestamp(),
     });
+
+    // Send notification to manager
+    await createNotification(
+      verificationData.userId,
+      'verification',
+      `Verification ${status === 'verified' ? 'Approved' : 'Rejected'}`,
+      status === 'verified' 
+        ? 'Your manager account has been verified. You can now manage hostels.' 
+        : `Your verification was rejected. ${adminNotes ? `Reason: ${adminNotes}` : ''}`,
+      '/manager/verify'
+    );
+
+    // Send Email notification to manager
+    if (verificationData.managerEmail && verificationData.managerEmail !== 'No email provided') {
+      await sendManagerVerificationEmail(verificationData.managerEmail, status, adminNotes);
+    }
+
+    // If verified, update the user's role to manager
+    if (status === 'verified') {
+      const userRef = doc(db, 'users', verificationData.userId);
+      await updateDoc(userRef, { role: 'manager' });
+    }
   } catch (error: any) {
     console.error('Error updating verification status:', error);
     throw new Error(error.message || 'Failed to update verification status');

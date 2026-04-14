@@ -1,6 +1,7 @@
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, serverTimestamp, deleteDoc, getDoc } from 'firebase/firestore';
 import { Complaint } from '@/types';
+import { createNotification } from './notificationService';
 
 export const submitComplaint = async (complaint: Omit<Complaint, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'adminVisible'>) => {
   try {
@@ -11,6 +12,18 @@ export const submitComplaint = async (complaint: Omit<Complaint, 'id' | 'created
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+
+    // Notify manager
+    if (complaint.managerId) {
+      await createNotification(
+        complaint.managerId,
+        'complaint',
+        'New Student Complaint',
+        `A student has submitted a new complaint: ${complaint.title}`,
+        '/manager/complaints'
+      );
+    }
+
     return docRef.id;
   } catch (error: any) {
     console.error('Error submitting complaint:', error);
@@ -108,6 +121,14 @@ export const updateComplaintStatus = async (
 ) => {
   try {
     const complaintRef = doc(db, 'complaints', complaintId);
+    const complaintDoc = await getDoc(complaintRef);
+    
+    if (!complaintDoc.exists()) {
+      throw new Error('Complaint not found');
+    }
+    
+    const complaintData = complaintDoc.data() as Complaint;
+
     const updateData: any = { 
       status,
       updatedAt: serverTimestamp()
@@ -122,6 +143,15 @@ export const updateComplaintStatus = async (
     }
     
     await updateDoc(complaintRef, updateData);
+
+    // Notify student
+    await createNotification(
+      complaintData.userId,
+      'complaint',
+      `Complaint ${status === 'resolved' ? 'Resolved' : 'Updated'}`,
+      `Your complaint "${complaintData.title}" has been marked as ${status}.`,
+      '/student/complaints'
+    );
   } catch (error: any) {
     console.error('Error updating complaint:', error);
     throw new Error(error.message || 'Failed to update complaint');

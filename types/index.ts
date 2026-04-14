@@ -20,6 +20,12 @@ export interface Hostel {
   images: string[];
   rating: number;
   isVerified: boolean;
+  policies?: string[];
+  contactDetails?: {
+    phone: string;
+    email: string;
+    whatsapp?: string;
+  };
   createdAt: any;
 }
 
@@ -95,5 +101,16 @@ export interface Inquiry {
   subject: string;
   message: string;
   status: 'unread' | 'read' | 'replied';
+  createdAt: any;
+}
+
+export interface AppNotification {
+  id?: string;
+  userId: string;
+  type: 'booking' | 'system' | 'complaint' | 'verification' | 'inquiry';
+  title: string;
+  message: string;
+  actionUrl?: string;
+  isRead: boolean;
   createdAt: any;
 }

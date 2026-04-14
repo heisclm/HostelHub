@@ -93,18 +93,40 @@ export default function AdminVerificationsPage() {
           <div className="grid gap-12">
             {verifications.map((v) => (
               <div key={v.id} className="border border-slate-900 group">
-                <div className={`p-6 border-b border-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                <div className={`p-6 border-b border-slate-900 flex flex-col md:flex-row md:items-start justify-between gap-4 ${
                   v.status === 'pending' ? 'bg-yellow-50' : v.status === 'verified' ? 'bg-green-50' : 'bg-red-50'
                 }`}>
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-slate-900">
-                      Application ID: <span className="text-slate-500 font-mono">{v.id?.slice(-8)}</span>
-                    </h3>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                      Submitted: {v.submittedAt?.toDate().toLocaleString() || 'Unknown'}
-                    </p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-4">
+                      <h3 className="text-xl md:text-2xl font-heading font-bold uppercase tracking-tighter text-slate-900">
+                        {v.managerName || v.user?.displayName || 'Unknown Manager'}
+                      </h3>
+                      {(v.managerEmail || v.user?.email) && (
+                        <a href={`mailto:${v.managerEmail || v.user?.email}`} className="text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:text-blue-800 border border-blue-200 bg-blue-50 px-3 py-1.5 transition-colors">
+                          Email Manager
+                        </a>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium text-slate-600">
+                      <span>{v.managerEmail || v.user?.email || 'No email provided'}</span>
+                      {v.user?.phoneNumber && (
+                        <>
+                          <span className="text-slate-300">|</span>
+                          <span>{v.user.phoneNumber}</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 font-mono">
+                        App ID: {v.id?.slice(-8)}
+                      </p>
+                      <span className="text-slate-300 text-[10px]">•</span>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        Submitted: {v.submittedAt?.toDate().toLocaleString() || 'Unknown'}
+                      </p>
+                    </div>
                   </div>
-                  <div className={`inline-flex px-4 py-2 text-[10px] font-bold uppercase tracking-widest border border-slate-900 ${
+                  <div className={`inline-flex px-4 py-2 text-[10px] font-bold uppercase tracking-widest border border-slate-900 shrink-0 ${
                     v.status === 'pending' ? 'bg-white text-yellow-600' :
                     v.status === 'verified' ? 'bg-slate-900 text-white' :
                     'bg-red-600 text-white'

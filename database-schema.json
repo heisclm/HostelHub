@@ -29,6 +29,21 @@
         "images": { "type": "array", "items": { "type": "string", "format": "uri" } },
         "rating": { "type": "number", "description": "Average rating from reviews" },
         "isVerified": { "type": "boolean", "description": "Whether the hostel has been verified by admin" },
+        "policies": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of rules and policies for the hostel."
+        },
+        "contactDetails": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "email": { "type": "string", "format": "email" },
+            "whatsapp": { "type": "string" }
+          },
+          "required": ["phone", "email"],
+          "description": "Contact information for the hostel manager."
+        },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["managerId", "name", "location", "address", "createdAt"]
@@ -123,6 +138,38 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["hostelId", "managerId", "senderName", "senderEmail", "message", "status", "createdAt"]
+    },
+    "ManagerVerification": {
+      "title": "ManagerVerification",
+      "description": "Represents a manager's application to be verified.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the user applying", "$ref": "#/entities/User" },
+        "managerName": { "type": "string", "description": "Denormalized name of the manager at time of application" },
+        "managerEmail": { "type": "string", "format": "email", "description": "Denormalized email of the manager at time of application" },
+        "idDocumentUrl": { "type": "string", "format": "uri" },
+        "propertyProofUrl": { "type": "string", "format": "uri" },
+        "status": { "type": "string", "enum": ["pending", "verified", "rejected"] },
+        "adminNotes": { "type": "string" },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "managerName", "managerEmail", "idDocumentUrl", "propertyProofUrl", "status", "submittedAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Represents an in-app notification for a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the user receiving the notification", "$ref": "#/entities/User" },
+        "type": { "type": "string", "enum": ["booking", "system", "complaint", "verification", "inquiry"] },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "actionUrl": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "title", "message", "isRead", "createdAt"]
     }
   },
   "firestore": {
@@ -145,6 +192,14 @@
     "/payments/{paymentId}": {
       "schema": { "$ref": "#/entities/Payment" },
       "description": "Stores payment transaction records."
+    },
+    "/managerVerifications/{verificationId}": {
+      "schema": { "$ref": "#/entities/ManagerVerification" },
+      "description": "Stores manager verification applications."
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/Notification" },
+      "description": "Stores in-app notifications for users."
     },
     "/complaints/{complaintId}": {
       "schema": { "$ref": "#/entities/Complaint" },

@@ -17,6 +17,9 @@ const hostelSchema = z.object({
   address: z.string().min(5, 'Address must be at least 5 characters'),
   distanceFromCampus: z.number().min(0, 'Distance must be a positive number'),
   amenities: z.string().min(3, 'Please provide at least one amenity'),
+  contactPhone: z.string().min(10, 'Please provide a valid phone number'),
+  contactEmail: z.string().email('Please provide a valid email address'),
+  contactWhatsapp: z.string().optional(),
 });
 
 export default function AddHostelPage() {
@@ -33,7 +36,11 @@ export default function AddHostelPage() {
     address: '',
     distanceFromCampus: '',
     amenities: '',
+    contactPhone: '',
+    contactEmail: '',
+    contactWhatsapp: '',
   });
+  const [policies, setPolicies] = useState<string[]>(['']);
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [images, setImages] = useState<File[]>([]);
 
@@ -45,6 +52,10 @@ export default function AddHostelPage() {
     if (userData?.role !== 'manager') {
       router.push('/');
       return;
+    }
+    // Pre-fill email from user data
+    if (user.email) {
+      setFormData(prev => ({ ...prev, contactEmail: user.email || '' }));
     }
   }, [user, userData, router]);
 
@@ -85,6 +96,7 @@ export default function AddHostelPage() {
 
       setIsLoading(true);
       const amenitiesList = validatedData.amenities.split(',').map(a => a.trim()).filter(a => a);
+      const filteredPolicies = policies.map(p => p.trim()).filter(p => p);
       
       const hostelId = await createHostel(user.uid, {
         name: validatedData.name,
@@ -93,6 +105,12 @@ export default function AddHostelPage() {
         distanceFromCampus: validatedData.distanceFromCampus,
         coordinates: coordinates || undefined,
         amenities: amenitiesList,
+        policies: filteredPolicies,
+        contactDetails: {
+          phone: validatedData.contactPhone,
+          email: validatedData.contactEmail,
+          whatsapp: validatedData.contactWhatsapp || undefined,
+        }
       }, images);
 
       toast.success('Hostel added successfully! Now add some rooms.');
@@ -218,7 +236,95 @@ export default function AddHostelPage() {
               {errors.amenities && <p className="text-[10px] text-red-500 mt-1 font-bold uppercase tracking-tight">{errors.amenities}</p>}
             </div>
 
-            <div className="space-y-4">
+            <div className="pt-8 border-t border-slate-200">
+              <h3 className="text-lg font-heading font-bold uppercase tracking-tighter mb-6">Contact Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
+                <div className="space-y-2">
+                  <label htmlFor="contactPhone" className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Phone Number</label>
+                  <input 
+                    id="contactPhone" 
+                    value={formData.contactPhone}
+                    onChange={(e) => setFormData({...formData, contactPhone: e.target.value})}
+                    placeholder="e.g. 0241234567" 
+                    className="w-full bg-transparent border-b border-slate-900 py-3 text-sm focus:outline-none focus:border-b-2 transition-all placeholder:text-slate-300 rounded-none"
+                    required 
+                  />
+                  {errors.contactPhone && <p className="text-[10px] text-red-500 mt-1 font-bold uppercase tracking-tight">{errors.contactPhone}</p>}
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="contactEmail" className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Email Address</label>
+                  <input 
+                    id="contactEmail" 
+                    type="email"
+                    value={formData.contactEmail}
+                    onChange={(e) => setFormData({...formData, contactEmail: e.target.value})}
+                    placeholder="e.g. manager@hostel.com" 
+                    className="w-full bg-transparent border-b border-slate-900 py-3 text-sm focus:outline-none focus:border-b-2 transition-all placeholder:text-slate-300 rounded-none"
+                    required 
+                  />
+                  {errors.contactEmail && <p className="text-[10px] text-red-500 mt-1 font-bold uppercase tracking-tight">{errors.contactEmail}</p>}
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <label htmlFor="contactWhatsapp" className="text-[10px] font-bold uppercase tracking-widest text-slate-500">WhatsApp Number (Optional)</label>
+                  <input 
+                    id="contactWhatsapp" 
+                    value={formData.contactWhatsapp}
+                    onChange={(e) => setFormData({...formData, contactWhatsapp: e.target.value})}
+                    placeholder="e.g. 0241234567" 
+                    className="w-full bg-transparent border-b border-slate-900 py-3 text-sm focus:outline-none focus:border-b-2 transition-all placeholder:text-slate-300 rounded-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-8 border-t border-slate-200">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-heading font-bold uppercase tracking-tighter">Hostel Policies</h3>
+                <button
+                  type="button"
+                  onClick={() => setPolicies([...policies, ''])}
+                  className="text-[10px] font-bold uppercase tracking-widest text-slate-900 border border-slate-900 px-3 py-1 hover:bg-slate-900 hover:text-white transition-colors"
+                >
+                  + Add Policy
+                </button>
+              </div>
+              <div className="space-y-4">
+                {policies.map((policy, index) => (
+                  <div key={index} className="flex items-start gap-4">
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-3">
+                      {(index + 1).toString().padStart(2, '0')}
+                    </span>
+                    <div className="flex-1">
+                      <input 
+                        value={policy}
+                        onChange={(e) => {
+                          const newPolicies = [...policies];
+                          newPolicies[index] = e.target.value;
+                          setPolicies(newPolicies);
+                        }}
+                        placeholder="e.g. No smoking inside the rooms." 
+                        className="w-full bg-transparent border-b border-slate-900 py-3 text-sm focus:outline-none focus:border-b-2 transition-all placeholder:text-slate-300 rounded-none"
+                      />
+                    </div>
+                    {policies.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newPolicies = [...policies];
+                          newPolicies.splice(index, 1);
+                          setPolicies(newPolicies);
+                        }}
+                        className="mt-3 text-[10px] font-bold uppercase tracking-widest text-red-500 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-8 border-t border-slate-200">
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">GPS Location (Optional)</label>
                 <p className="text-[10px] text-slate-400 mt-1">Click on the map to set the exact location of your hostel.</p>

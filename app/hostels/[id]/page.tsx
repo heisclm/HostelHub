@@ -230,24 +230,22 @@ export default function HostelDetailsPage() {
             {activeTab === 'policies' && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <h3 className="text-2xl font-heading font-bold uppercase tracking-tighter mb-6">Hostel Policies</h3>
-                <ul className="space-y-6 text-slate-600">
-                  <li className="flex items-start gap-4 border-b border-slate-200 pb-4">
-                    <span className="text-xs font-bold uppercase tracking-widest text-slate-900 mt-1">01</span>
-                    <span className="text-sm">No smoking inside the rooms or common areas.</span>
-                  </li>
-                  <li className="flex items-start gap-4 border-b border-slate-200 pb-4">
-                    <span className="text-xs font-bold uppercase tracking-widest text-slate-900 mt-1">02</span>
-                    <span className="text-sm">Quiet hours are from 10:00 PM to 6:00 AM.</span>
-                  </li>
-                  <li className="flex items-start gap-4 border-b border-slate-200 pb-4">
-                    <span className="text-xs font-bold uppercase tracking-widest text-slate-900 mt-1">03</span>
-                    <span className="text-sm">Visitors must leave the premises by 8:00 PM.</span>
-                  </li>
-                  <li className="flex items-start gap-4 border-b border-slate-200 pb-4">
-                    <span className="text-xs font-bold uppercase tracking-widest text-slate-900 mt-1">04</span>
-                    <span className="text-sm">Any damage to property will be charged to the responsible student.</span>
-                  </li>
-                </ul>
+                {hostel.policies && hostel.policies.length > 0 ? (
+                  <ul className="space-y-6 text-slate-600">
+                    {hostel.policies.map((policy, index) => (
+                      <li key={index} className="flex items-start gap-4 border-b border-slate-200 pb-4">
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-900 mt-1">
+                          {(index + 1).toString().padStart(2, '0')}
+                        </span>
+                        <span className="text-sm">{policy}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="border border-slate-200 p-8 text-center bg-slate-50">
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500">No specific policies listed by the manager.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -299,6 +297,39 @@ export default function HostelDetailsPage() {
                       </button>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Contact Manager Card */}
+              {hostel.contactDetails && (
+                <div className="border border-slate-900 p-6 bg-slate-50 mt-8">
+                  <h4 className="font-bold uppercase tracking-wider text-lg mb-4">Contact Manager</h4>
+                  <div className="space-y-4">
+                    {hostel.contactDetails.phone && (
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Phone</span>
+                        <a href={`tel:${hostel.contactDetails.phone}`} className="text-sm font-bold text-slate-900 hover:underline">
+                          {hostel.contactDetails.phone}
+                        </a>
+                      </div>
+                    )}
+                    {hostel.contactDetails.whatsapp && (
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-500">WhatsApp</span>
+                        <a href={`https://wa.me/${hostel.contactDetails.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-green-600 hover:underline">
+                          {hostel.contactDetails.whatsapp}
+                        </a>
+                      </div>
+                    )}
+                    {hostel.contactDetails.email && (
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Email</span>
+                        <a href={`mailto:${hostel.contactDetails.email}`} className="text-sm font-bold text-slate-900 hover:underline">
+                          {hostel.contactDetails.email}
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

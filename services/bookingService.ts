@@ -1,6 +1,8 @@
 import { db } from '@/lib/firebase';
-import { collection, doc, runTransaction, serverTimestamp, query, where, getDocs, orderBy, updateDoc, Timestamp } from 'firebase/firestore';
-import { Booking, Room } from '@/types';
+import { collection, doc, runTransaction, serverTimestamp, query, where, getDocs, orderBy, updateDoc, Timestamp, getDoc } from 'firebase/firestore';
+import { Booking, Room, Hostel } from '@/types';
+import { createNotification } from './notificationService';
+import { sendBookingConfirmationEmail } from './emailService';
 
 export const createBooking = async (
   hostelId: string,
@@ -11,12 +13,23 @@ export const createBooking = async (
 ) => {
   try {
     const roomRef = doc(db, `hostels/${hostelId}/rooms`, roomId);
+    const hostelRef = doc(db, 'hostels', hostelId);
     const bookingsRef = collection(db, 'bookings');
+
+    let managerIdToNotify = '';
+    let hostelNameToNotify = '';
 
     const bookingId = await runTransaction(db, async (transaction) => {
       const roomDoc = await transaction.get(roomRef);
       if (!roomDoc.exists()) {
         throw new Error('Room does not exist!');
+      }
+
+      const hostelDoc = await transaction.get(hostelRef);
+      if (hostelDoc.exists()) {
+        const hostelData = hostelDoc.data() as Hostel;
+        managerIdToNotify = hostelData.managerId;
+        hostelNameToNotify = hostelData.name;
       }
 
       const roomData = roomDoc.data() as Room;
@@ -28,11 +41,6 @@ export const createBooking = async (
       if (roomData.occupiedBeds >= roomData.capacity) {
         throw new Error('Room is fully booked.');
       }
-
-      // Check if student already has an active booking for this room (or any room)
-      // Note: In a transaction, queries are not allowed, so we do this check outside or accept the risk.
-      // A better approach is to check outside the transaction first, but for strict concurrency, 
-      // we rely on the transaction to update the room's occupiedBeds safely.
 
       // Increment occupied beds
       transaction.update(roomRef, {
@@ -64,6 +72,16 @@ export const createBooking = async (
       return newBookingRef.id;
     });
 
+    if (managerIdToNotify) {
+      await createNotification(
+        managerIdToNotify,
+        'booking',
+        'New Room Booking',
+        `A student (${studentEmail}) has booked a room in ${hostelNameToNotify}.`,
+        '/manager/dashboard'
+      );
+    }
+
     return bookingId;
   } catch (error: any) {
     console.error('Error creating booking:', error);
@@ -78,11 +96,48 @@ export const updateBookingPaymentStatus = async (
 ) => {
   try {
     const bookingRef = doc(db, 'bookings', bookingId);
+    const bookingDoc = await getDoc(bookingRef);
+    
+    if (!bookingDoc.exists()) {
+      throw new Error('Booking not found');
+    }
+    
+    const bookingData = bookingDoc.data() as Booking;
+
     const updateData: any = { paymentStatus };
     if (status) {
       updateData.status = status;
     }
     await updateDoc(bookingRef, updateData);
+
+    // Notify student if payment is successful
+    if (paymentStatus === 'paid') {
+      await createNotification(
+        bookingData.studentId,
+        'booking',
+        'Payment Successful',
+        `Your payment for Room ${bookingData.roomNumber || ''} has been received.`,
+        '/student/dashboard'
+      );
+
+      // Send Email Notification
+      // We need to fetch the hostel name for the email
+      let hostelName = 'HostelHub';
+      try {
+        const hostelDoc = await getDoc(doc(db, 'hostels', bookingData.hostelId));
+        if (hostelDoc.exists()) {
+          hostelName = (hostelDoc.data() as Hostel).name;
+        }
+      } catch (e) {
+        console.error('Failed to fetch hostel name for email', e);
+      }
+
+      await sendBookingConfirmationEmail(
+        bookingData.studentEmail,
+        bookingData.roomNumber || 'Unknown',
+        hostelName
+      );
+    }
   } catch (error: any) {
     console.error('Error updating booking payment status:', error);
     throw new Error(error.message || 'Failed to update booking');

@@ -9,6 +9,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 import { Menu, X, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import NotificationBell from '@/components/NotificationBell';
 
 export function Navbar() {
   const { user, userData, loading } = useAuth();
@@ -103,12 +104,21 @@ export function Navbar() {
             </div>
           )}
           
-          <button 
-            className="md:hidden w-10 h-10 flex items-center justify-center text-slate-900"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          <div className="flex items-center gap-2 md:hidden">
+            {user && <NotificationBell />}
+            <button 
+              className="w-10 h-10 flex items-center justify-center text-slate-900"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
+          
+          {user && (
+            <div className="hidden md:block">
+              <NotificationBell />
+            </div>
+          )}
         </div>
       </div>
 
@@ -148,21 +158,23 @@ export function Navbar() {
                           </span>
                           <span className="text-[10px] uppercase tracking-widest text-slate-400">{userData?.role}</span>
                         </div>
-                        <button 
-                          onClick={() => {
-                            if (userData?.role === 'admin') {
-                              router.push('/admin/dashboard');
-                            } else if (userData?.role === 'manager') {
-                              router.push('/manager/dashboard');
-                            } else {
-                              router.push('/student/dashboard');
-                            }
-                            setIsMobileMenuOpen(false);
-                          }}
-                          className="text-[10px] font-bold uppercase tracking-widest bg-slate-900 text-white px-4 py-2"
-                        >
-                          Dashboard
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button 
+                            onClick={() => {
+                              if (userData?.role === 'admin') {
+                                router.push('/admin/dashboard');
+                              } else if (userData?.role === 'manager') {
+                                router.push('/manager/dashboard');
+                              } else {
+                                router.push('/student/dashboard');
+                              }
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className="text-[10px] font-bold uppercase tracking-widest bg-slate-900 text-white px-4 py-2"
+                          >
+                            Dashboard
+                          </button>
+                        </div>
                       </div>
                       <button 
                         onClick={handleLogout}

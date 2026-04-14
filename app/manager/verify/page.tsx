@@ -37,7 +37,7 @@ export default function ManagerVerifyPage() {
 
     setIsLoading(true);
     try {
-      await submitVerification(user.uid, idFile, propFile);
+      await submitVerification(user.uid, user.displayName || undefined, user.email || undefined, idFile, propFile);
       toast.success('Verification documents submitted successfully!');
       mutateVerification();
     } catch (error: any) {
