@@ -58,33 +58,33 @@ HostelHub is a high-performance, full-stack web application designed to streamli
 - Node.js 20+
 - A Firebase Project
 
-### 2. Firebase Configuration
-This project uses a `firebase-config.json` file in the root directory to manage Firebase credentials. Ensure this file exists and contains your project's configuration:
+### 2. Environment Variables & Configuration
+This project uses environment variables (`.env` or `.env.local`) to securely store configuration, API keys, and credentials. 
 
-```json
-{
-  "apiKey": "your_api_key",
-  "authDomain": "your_auth_domain",
-  "projectId": "your_project_id",
-  "storageBucket": "your_storage_bucket",
-  "messagingSenderId": "your_sender_id",
-  "appId": "your_app_id",
-  "firestoreDatabaseId": "your_database_id"
-}
-```
-
-### 3. Environment Variables
-Create a `.env` or `.env.local` file in the root directory and add the following keys for Cloudinary and Resend integrations:
+To set up your environment:
+1. Copy `.env.example` to `.env.local`: `cp .env.example .env.local`
+2. Fill in the required credentials. Note that variables prefixed with `NEXT_PUBLIC_` are exposed to the browser.
 
 ```env
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY="AIzaSyXXXXXXXXXXXXXXXXXX"
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-app.firebaseapp.com"
+NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-app.firebasestorage.app"
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="1234567890"
+NEXT_PUBLIC_FIREBASE_APP_ID="1:12345678:web:abcdef12345"
+
 # Cloudinary (Image/Document Uploads)
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your_cloud_name"
 NEXT_PUBLIC_CLOUDINARY_API_KEY="your_api_key"
-CLOUDINARY_API_SECRET="your_api_secret"
+CLOUDINARY_API_SECRET="your_api_secret" # DO NOT EXPOSE TO NEXT_PUBLIC
 
 # Resend (Email Notifications)
 RESEND_API_KEY="your_resend_api_key"
+RESEND_FROM_EMAIL="HostelHub <onboarding@resend.dev>"
 ```
+
+*(Note: For legacy compatibility during migration, the app can temporarily fallback to a `firebase-config.json` file if the preferred `NEXT_PUBLIC_FIREBASE_*` environment variables are missing.)*
 
 ### 4. Install Dependencies
 Due to certain third-party libraries (like `react-paystack`) not yet officially supporting React 19 peer dependencies, you **must** use the `--legacy-peer-deps` flag during installation:

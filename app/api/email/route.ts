@@ -25,9 +25,12 @@ export async function POST(request: Request) {
     }
 
     // Note: If you don't have a verified domain in Resend, you can only send to the email address associated with your Resend account.
-    // For production, replace 'onboarding@resend.dev' with your verified domain (e.g., 'notifications@hostelhub.com')
+    // For production, replace 'onboarding@resend.dev' with your verified domain or set RESEND_FROM_EMAIL in .env
+    const defaultFrom = 'HostelHub <onboarding@resend.dev>';
+    const from = process.env.RESEND_FROM_EMAIL || defaultFrom;
+    
     const data = await resend.emails.send({
-      from: 'HostelHub <onboarding@resend.dev>',
+      from,
       to,
       subject,
       html: html || '',

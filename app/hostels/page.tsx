@@ -2,17 +2,23 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useHostels } from '@/hooks/useHostels';
+import { useHostelsPaginated } from '@/hooks/useHostels';
 import { Hostel, Room } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { MapPin, Search, Filter, BedDouble, Heart, Star, Map, LayoutGrid, ArrowRight } from 'lucide-react';
+import { MapPin, Search, Filter, BedDouble, Heart, Star, Map, LayoutGrid, ArrowRight, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
 type HostelWithRooms = Hostel & { rooms: Room[] };
 
 export default function HostelsPage() {
-  const { hostels, isLoading } = useHostels();
+  const { hostels, isLoading, hasMore, loadHostels, initialLoaded } = useHostelsPaginated(12);
+
+  // Load initial data
+  useEffect(() => {
+    if (!initialLoaded) {
+      loadHostels(true);
+    }
+  }, [initialLoaded, loadHostels]);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -220,52 +226,70 @@ export default function HostelsPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
-                {filteredHostels.map(hostel => {
-                  const startingPrice = getStartingPrice(hostel.rooms);
-                  return (
-                    <Link href={`/hostels/${hostel.id}`} key={hostel.id} className="group block border border-slate-900 flex flex-col bg-white">
-                      <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden border-b border-slate-900">
-                        {hostel.images?.[0] ? (
-                          <Image 
-                            src={hostel.images[0]} 
-                            alt={hostel.name} 
-                            fill
-                            className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700" 
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-[10px]">No Image</div>
-                        )}
-                        <div className="absolute top-3 left-3 md:top-4 md:left-4 bg-white text-slate-900 border border-slate-900 px-2 py-0.5 md:px-3 md:py-1 rounded-full text-[8px] md:text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
-                          <Star className="w-2.5 h-2.5 md:w-3 md:h-3 fill-slate-900" /> {hostel.rating.toFixed(1)}
-                        </div>
-                        <div className="absolute top-3 right-3 md:top-4 md:right-4 w-8 h-8 md:w-10 md:h-10 rounded-full bg-white border border-slate-900 flex items-center justify-center hover:bg-slate-50 transition-colors">
-                          <Heart className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-900" />
-                        </div>
-                      </div>
-                      <div className="p-4 md:p-6 flex-1 flex flex-col">
-                        <div className="flex justify-between items-start mb-1 md:mb-2">
-                          <h3 className="text-xl md:text-2xl font-heading font-bold uppercase tracking-tighter truncate pr-4">{hostel.name}</h3>
-                        </div>
-                        <p className="text-xs md:text-sm text-slate-500 mb-4 md:mb-6 truncate">{hostel.address}, {hostel.location}</p>
-                        
-                        <div className="mt-auto pt-4 md:pt-6 border-t border-slate-200 flex justify-between items-end">
-                          <div>
-                            <p className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5 md:mb-1">Starting from</p>
-                            <p className="text-slate-900">
-                              <span className="font-bold text-lg md:text-xl">{startingPrice ? `GH₵${startingPrice}` : 'N/A'}</span>
-                              <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">/sem</span>
-                            </p>
+              <div className="space-y-8 md:space-y-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
+                  {filteredHostels.map(hostel => {
+                    const startingPrice = getStartingPrice(hostel.rooms);
+                    return (
+                      <Link href={`/hostels/${hostel.id}`} key={hostel.id} className="group block border border-slate-900 flex flex-col bg-white">
+                        <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden border-b border-slate-900">
+                          {hostel.images?.[0] ? (
+                            <Image 
+                              src={hostel.images[0]} 
+                              alt={hostel.name} 
+                              fill
+                              className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700" 
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-[10px]">No Image</div>
+                          )}
+                          <div className="absolute top-3 left-3 md:top-4 md:left-4 bg-white text-slate-900 border border-slate-900 px-2 py-0.5 md:px-3 md:py-1 rounded-full text-[8px] md:text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+                            <Star className="w-2.5 h-2.5 md:w-3 md:h-3 fill-slate-900" /> {hostel.rating.toFixed(1)}
                           </div>
-                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-slate-900 flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                            <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                          <div className="absolute top-3 right-3 md:top-4 md:right-4 w-8 h-8 md:w-10 md:h-10 rounded-full bg-white border border-slate-900 flex items-center justify-center hover:bg-slate-50 transition-colors">
+                            <Heart className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-900" />
                           </div>
                         </div>
-                      </div>
-                    </Link>
-                  );
-                })}
+                        <div className="p-4 md:p-6 flex-1 flex flex-col">
+                          <div className="flex justify-between items-start mb-1 md:mb-2">
+                            <h3 className="text-xl md:text-2xl font-heading font-bold uppercase tracking-tighter truncate pr-4">{hostel.name}</h3>
+                          </div>
+                          <p className="text-xs md:text-sm text-slate-500 mb-4 md:mb-6 truncate">{hostel.address}, {hostel.location}</p>
+                          
+                          <div className="mt-auto pt-4 md:pt-6 border-t border-slate-200 flex justify-between items-end">
+                            <div>
+                              <p className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5 md:mb-1">Starting from</p>
+                              <p className="text-slate-900">
+                                <span className="font-bold text-lg md:text-xl">{startingPrice ? `GH₵${startingPrice}` : 'N/A'}</span>
+                                <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">/sem</span>
+                              </p>
+                            </div>
+                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-slate-900 flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-colors">
+                              <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+                
+                {hasMore && (
+                  <div className="flex justify-center pt-8 border-t border-slate-200">
+                    <button 
+                      onClick={() => loadHostels(false)}
+                      disabled={isLoading}
+                      className="group flex items-center justify-center bg-transparent border border-slate-900 text-slate-900 px-8 py-4 rounded-full text-xs font-bold uppercase tracking-wider hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Loading...</>
+                      ) : (
+                        'Load More Hostels'
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

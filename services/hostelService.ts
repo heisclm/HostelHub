@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, serverTimestamp, getDoc, orderBy, collectionGroup } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, serverTimestamp, getDoc, orderBy, collectionGroup, limit, startAfter, DocumentSnapshot } from 'firebase/firestore';
 import { Hostel, Room, Review } from '@/types';
 import { uploadToCloudinary } from './cloudinaryService';
 
@@ -53,6 +53,51 @@ export const getAllVerifiedHostels = async () => {
   } catch (error: any) {
     console.error('Error getting verified hostels:', error);
     throw new Error(error.message || 'Failed to get hostels');
+  }
+};
+
+export const getVerifiedHostelsPaginated = async (
+  lastDoc: DocumentSnapshot | null = null,
+  pageSize: number = 12
+) => {
+  try {
+    let q = query(
+      collection(db, 'hostels'),
+      where('isVerified', '==', true),
+      limit(pageSize)
+    );
+
+    if (lastDoc) {
+      q = query(q, startAfter(lastDoc));
+    }
+
+    const querySnapshot = await getDocs(q);
+    const hostels = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Hostel));
+    const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
+
+    if (hostels.length === 0) return { hostels: [], lastVisible: null };
+
+    // Fetch rooms ONLY for these specific hostels
+    const hostelIds = hostels.map(h => h.id);
+    const roomsQuery = query(collectionGroup(db, 'rooms'), where('hostelId', 'in', hostelIds));
+    const roomsSnapshot = await getDocs(roomsQuery);
+    
+    const roomsByHostel: Record<string, Room[]> = {};
+    roomsSnapshot.docs.forEach(doc => {
+      const room = { id: doc.id, ...doc.data() } as Room;
+      if (!roomsByHostel[room.hostelId]) roomsByHostel[room.hostelId] = [];
+      roomsByHostel[room.hostelId].push(room);
+    });
+
+    const hostelsWithRooms = hostels.map(hostel => ({
+      ...hostel,
+      rooms: roomsByHostel[hostel.id!] || []
+    }));
+
+    return { hostels: hostelsWithRooms, lastVisible, rawDocs: querySnapshot.docs };
+  } catch (error: any) {
+    console.error('Error getting paginated hostels:', error);
+    throw new Error(error.message || 'Failed to get paginated hostels');
   }
 };
 
@@ -129,18 +174,26 @@ export const getHostelRooms = async (hostelId: string) => {
 
 export const getManagerRooms = async (managerId: string) => {
   try {
-    // Optimization: Use collectionGroup to get all rooms
-    // Then filter by managerId if needed, or just rely on the fact that 
-    // we only care about rooms belonging to hostels the manager owns.
-    // Since rooms have hostelId, we can filter them.
-    const roomsSnapshot = await getDocs(collectionGroup(db, 'rooms'));
-    const allRooms = roomsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Room));
-    
-    // We need to know which hostels belong to the manager to filter rooms
+    // Optimization: First get the manager's hostels, then fetch rooms ONLY for those hostels
     const managerHostels = await getManagerHostels(managerId);
-    const managerHostelIds = new Set(managerHostels.map(h => h.id));
+    if (managerHostels.length === 0) return [];
     
-    return allRooms.filter(room => managerHostelIds.has(room.hostelId));
+    const managerHostelIds = managerHostels.map(h => h.id);
+    
+    // Firestore 'in' query supports up to 30 values.
+    const chunks = [];
+    for (let i = 0; i < managerHostelIds.length; i += 30) {
+      chunks.push(managerHostelIds.slice(i, i + 30));
+    }
+    
+    let allRooms: Room[] = [];
+    for (const chunk of chunks) {
+      const q = query(collectionGroup(db, 'rooms'), where('hostelId', 'in', chunk));
+      const snapshot = await getDocs(q);
+      allRooms = [...allRooms, ...snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Room))];
+    }
+    
+    return allRooms;
   } catch (error: any) {
     console.error('Error getting manager rooms:', error);
     throw new Error(error.message || 'Failed to get manager rooms');
