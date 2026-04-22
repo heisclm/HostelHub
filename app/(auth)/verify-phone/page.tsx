@@ -30,16 +30,41 @@ export default function VerifyPhonePage() {
     }
   }, [user, userData, loading, router]);
 
-  const setupRecaptcha = () => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: () => {
-          // reCAPTCHA solved
-        },
-      });
+  // Initialize reCAPTCHA early so it has time to establish browser trust
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !window.recaptchaVerifier) {
+      try {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'invisible',
+          callback: () => {
+            // reCAPTCHA solved
+          },
+          'expired-callback': () => {
+            toast.error('reCAPTCHA expired. Please try sending OTP again.');
+            if (window.recaptchaVerifier) {
+              window.recaptchaVerifier.clear();
+              window.recaptchaVerifier = undefined;
+            }
+          }
+        });
+        
+        // Optional pre-render to speed up SMS delivery
+        window.recaptchaVerifier.render().catch(console.error);
+      } catch (error) {
+        console.error("Recaptcha initialization error", error);
+      }
     }
-  };
+    
+    // Cleanup on unmount
+    return () => {
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+          window.recaptchaVerifier = undefined;
+        } catch (e) {}
+      }
+    };
+  }, []);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +80,10 @@ export default function VerifyPhonePage() {
 
     setIsLoading(true);
     try {
-      setupRecaptcha();
+      if (!window.recaptchaVerifier) {
+        throw new Error("Security verification not ready. Please refresh the page.");
+      }
+      
       const appVerifier = window.recaptchaVerifier;
       const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       setConfirmationResult(result);
