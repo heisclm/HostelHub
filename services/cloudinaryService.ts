@@ -12,7 +12,9 @@ export const uploadToCloudinary = async (file: File, folder: string): Promise<st
     // Request both signature AND secure timestamp from our backend
     // relying on the client device clock causes "Stale request" errors 
     // if the user's laptop time is out of sync.
-    const signatureResponse = await fetch('/api/upload', {
+    // Adding a unique cacheBuster prevents ANY browser/Next.js deep caching.
+    const cacheBuster = new Date().getTime();
+    const signatureResponse = await fetch(`/api/upload?t=${cacheBuster}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
