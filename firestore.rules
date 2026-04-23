@@ -131,10 +131,19 @@ service cloud.firestore {
     }
 
     match /bookings/{bookingId} {
-      // PRO-DEV OPTIMIZATION: We avoid costly "get(hostel)" lookups by duplicating managerId onto the booking document (O(1) read instead of O(N) reads).
-      allow read: if isOwner(resource.data.studentId) || isOwner(resource.data.managerId) || isAdmin();
+      // PRO-DEV OPTIMIZATION: We check for the new optimized managerId field first (0(1) read). 
+      // If it's an old booking from before the optimization, we gracefully fallback to the original get() lookup so nothing breaks!
+      allow read: if isOwner(resource.data.studentId) || 
+                     ( 'managerId' in resource.data && isOwner(resource.data.managerId) ) || 
+                     ( !('managerId' in resource.data) && isOwner(get(/databases/$(database)/documents/hostels/$(resource.data.hostelId)).data.managerId) ) || 
+                     isAdmin();
+                     
       allow create: if isOwner(request.resource.data.studentId) && isValidBooking(request.resource.data);
-      allow update: if isOwner(resource.data.studentId) || isOwner(resource.data.managerId) || isAdmin();
+      
+      allow update: if isOwner(resource.data.studentId) || 
+                     ( 'managerId' in resource.data && isOwner(resource.data.managerId) ) || 
+                     ( !('managerId' in resource.data) && isOwner(get(/databases/$(database)/documents/hostels/$(resource.data.hostelId)).data.managerId) ) || 
+                     isAdmin();
     }
 
     match /complaints/{complaintId} {
