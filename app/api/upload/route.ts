@@ -25,6 +25,8 @@ export async function POST(request: Request) {
     // Generate the timestamp on the secure backend server. 
     // This prevents "Stale request" errors if the client laptop's clock is inaccurate.
     const timestamp = Math.round(new Date().getTime() / 1000);
+    
+    console.log(`[Cloudinary API] Generating signature for folder: ${folder} at timestamp: ${timestamp}`);
 
     const paramsToSign = {
       timestamp,
