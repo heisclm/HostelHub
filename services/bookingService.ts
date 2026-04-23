@@ -56,6 +56,8 @@ export const createBooking = async (
       const newBookingRef = doc(bookingsRef);
       const newBooking: Omit<Booking, 'id'> = {
         hostelId,
+        hostelName: hostelNameToNotify,
+        managerId: managerIdToNotify,
         roomId,
         roomNumber: roomData.roomNumber,
         studentId,

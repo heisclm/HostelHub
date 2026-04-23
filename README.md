@@ -100,6 +100,75 @@ If you encounter issues with form validation libraries, ensure all core dependen
 npm run dev
 ```
 
+## 🚀 Production Deployment & Handover Guide
+
+Welcome to the HostelHub production setup! This section walks you through the exact steps required to deploy this high-performance platform reliably and securely.
+
+### Phase 1: Environment Variables Setup (The `.env` File)
+All sensitive data, API keys, and deployment configurations have been centralized (as seen in step 2 above).
+1. Duplicate `.env.example` and name it `.env.local` (for local development) or `.env` (for production).
+2. Fill in all the raw keys requested within the file. 
+3. **Never commit your `.env` file to GitHub.** It is automatically ignored by `.gitignore`.
+
+### Phase 2: Firebase Deployment (Database & Rules)
+The codebase includes professional security rules (`firestore.rules`) and performance indexes (`firestore.indexes.json`).
+
+#### 1. Identify Your Admin Account
+By default, the Firestore database completely locks out modification of Hostels unless you are an "Admin". You MUST set up your admin email BEFORE deploying rules:
+* Open `firestore.rules`.
+* Go to around Line 26: `request.auth.token.email == "admin@gmail.com"`
+* Replace `"admin@gmail.com"` with the Google account email you will use to log into the platform.
+
+#### 2. Deploy Configuration to Firebase via CLI
+If you have the Firebase CLI installed (`npm install -g firebase-tools`):
+1. Login: `firebase login`
+2. Connect the project: `firebase use your-firebase-project-id`
+3. Deploy rules & indexes:
+   ```bash
+   firebase deploy --only firestore
+   ```
+*(Note: If you do not deploy the indexes, complex dashboard queries will fail with "Index Building" errors).*
+
+### Phase 3: Email Delivery Setup (Resend)
+The platform uses Resend to deliver OTPs, Welcome Emails, and Booking Confirmations. 
+
+By default, Resend limits delivery in their "Sandbox Mode" to ONLY the email address that created the Resend account.
+1. Log in to [Resend.com](https://resend.com).
+2. Go to **Domains** and add your production domain (e.g., `hostelhub.com`).
+3. Verify the domain using the DNS records provided by Resend.
+4. Open your `.env` file and update:
+   `RESEND_FROM_EMAIL="HostelHub <notifications@your-verified-domain.com>"`
+
+If you do not complete this step, real managers and students will NOT receive emails.
+
+### Phase 4: Image & Document Storage Setup (Cloudinary)
+The system uploads room images and manager identity verifications to Cloudinary using secure, server-side cryptographic signatures.
+
+Cloudinary sometimes blocks uploads if the requested destination folder doesn't exist yet.
+1. Log in to your Cloudinary Dashboard.
+2. Go to **Settings (Gear Icon)** -> **Upload**.
+3. Scroll down to **Upload presets** or general upload settings and ensure **"Auto-create folders"** is ENABLED.
+
+### Phase 5: Building for Production
+Once all API keys are securely linked, you can build the application for deployment (Vercel, AWS, Google Cloud Run, etc.).
+
+```bash
+# 1. Clean install dependencies
+npm install --legacy-peer-deps
+
+# 2. Build the optimized Next.js app
+npm run build
+
+# 3. Start the production server
+npm run start
+```
+
+**Note on Vercel Deployments:**
+If deploying to Vercel, you do not need to upload the `.env` file. Instead:
+1. Go to your Vercel Project Dashboard.
+2. Navigate to **Settings** -> **Environment Variables**.
+3. Copy/Paste the exact keys and values from your `.env` file directly into Vercel.
+
 ## 🔒 Security & Rules
 
 ### Firestore Security Rules

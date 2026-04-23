@@ -53,6 +53,8 @@ export interface Review {
 export interface Booking {
   id?: string;
   hostelId: string;
+  hostelName?: string;
+  managerId?: string;
   roomId: string;
   roomNumber?: string;
   studentId: string;
