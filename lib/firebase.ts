@@ -19,7 +19,9 @@ const envConfig = {
 let firebaseConfig = envConfig;
 if (!envConfig.apiKey) {
   try {
-    firebaseConfig = require('../firebase-config.json');
+    // Determine path dynamically to prevent webpack from statically complaining if the file is missing
+    const configName = '../firebase-config.json';
+    firebaseConfig = require(`${configName}`);
   } catch (e) {
     console.error("Firebase config not found. Please provide NEXT_PUBLIC_FIREBASE_* env vars or firebase-config.json");
   }

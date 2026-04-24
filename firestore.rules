@@ -133,6 +133,10 @@ service cloud.firestore {
                        || isAdmin();
     }
 
+    match /{path=**}/rooms/{roomId} {
+      allow read: if true;
+    }
+
     match /managerVerifications/{verificationId} {
       allow read: if isOwner(resource.data.userId) || isAdmin();
       allow create: if isOwner(request.resource.data.userId) &&
