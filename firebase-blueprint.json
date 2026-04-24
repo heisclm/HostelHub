@@ -1,0 +1,88 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Represents a user in the HostelHub system.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["student", "manager", "guest", "admin"] },
+        "displayName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "phoneVerified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "Hostel": {
+      "title": "Hostel",
+      "description": "Represents a hostel property.",
+      "type": "object",
+      "properties": {
+        "managerId": { "type": "string" },
+        "name": { "type": "string" },
+        "location": { "type": "string" },
+        "address": { "type": "string" },
+        "distanceFromCampus": { "type": "number" },
+        "amenities": { "type": "array", "items": { "type": "string" } },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "rating": { "type": "number" },
+        "isVerified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["managerId", "name", "location", "address", "createdAt"]
+    },
+    "Room": {
+      "title": "Room",
+      "description": "Represents a room within a hostel.",
+      "type": "object",
+      "properties": {
+        "hostelId": { "type": "string" },
+        "roomNumber": { "type": "string" },
+        "type": { "type": "string", "enum": ["1-in-a-room", "2-in-a-room", "3-in-a-room", "4-in-a-room"] },
+        "pricePerSemester": { "type": "number" },
+        "capacity": { "type": "number" },
+        "occupiedBeds": { "type": "number" },
+        "isAvailable": { "type": "boolean" }
+      },
+      "required": ["hostelId", "roomNumber", "type", "pricePerSemester", "capacity", "occupiedBeds", "isAvailable"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Represents a student's reservation.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "studentEmail": { "type": "string" },
+        "hostelId": { "type": "string" },
+        "managerId": { "type": "string" },
+        "roomId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled"] },
+        "amount": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["pending", "paid"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "hostelId", "roomId", "status", "amount", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user profiles."
+    },
+    "/hostels/{hostelId}": {
+      "schema": "Hostel",
+      "description": "Collection of hostels."
+    },
+    "/hostels/{hostelId}/rooms/{roomId}": {
+      "schema": "Room",
+      "description": "Subcollection of rooms in a hostel."
+    },
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Collection of bookings."
+    }
+  }
+}

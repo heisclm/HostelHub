@@ -2,39 +2,7 @@ import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { User as AppUser } from '@/types';
-
-export enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId?: string;
-    email?: string | null;
-  }
-}
-
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-    },
-    operationType,
-    path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-}
+import { handleFirestoreError } from '@/lib/firebase-errors';
 
 export const registerUser = async (email: string, password: string, name: string, role: 'student' | 'manager' | 'guest') => {
   try {
@@ -54,11 +22,12 @@ export const registerUser = async (email: string, password: string, name: string
     try {
       await setDoc(doc(db, 'users', user.uid), userData);
     } catch (dbError) {
-      handleFirestoreError(dbError, OperationType.CREATE, path);
+      handleFirestoreError(dbError, 'create', path);
     }
 
     return { user, userData };
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof Error && error.message.includes('{')) throw error; // Already handled by handleFirestoreError
     console.error("Registration error:", error);
     throw error;
   }
@@ -79,13 +48,14 @@ export const loginUser = async (email: string, password: string): Promise<{ user
         throw new Error("User profile not found in database.");
       }
     } catch (dbError) {
-      handleFirestoreError(dbError, OperationType.GET, path);
-      throw dbError; // Ensure TS knows this throws
+      handleFirestoreError(dbError, 'get', path);
     }
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof Error && error.message.includes('{')) throw error; 
     console.error("Login error:", error);
     throw error;
   }
+  throw new Error("Unexpected login failure");
 };
 
 export const logoutUser = async () => {

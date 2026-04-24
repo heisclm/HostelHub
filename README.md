@@ -11,6 +11,18 @@ HostelHub is a high-performance, full-stack web application designed to streamli
 - **Personal Dashboard**: Track booking status, payment history, and manage active stays.
 - **Complaint Management**: Submit and track maintenance or service issues directly to managers.
 
+## 🚀 Pro-Dev Recovery & Portability
+
+If you clone this project and switch to a different Firebase account or project, follow these steps to avoid "Missing or insufficient permissions":
+
+1.  **Configure Environment**: Copy `.env.example` to `.env` or `.env.local` and update the `NEXT_PUBLIC_FIREBASE_*` variables with your new project's credentials.
+2.  **Deploy Security Rules**: This is the most common cause of permission errors. Run:
+    ```bash
+    npm run firebase:deploy:rules
+    ```
+3.  **Bootstrap Admin**: The system includes a fallback for the admin email `feraclem@gmail.com`. Log in with this email to access admin features on a new project, or update the `isAdmin` check in `firestore.rules`.
+4.  **Diagnostics**: If an operation fails, the system provides a detailed `FirestoreErrorInfo` in the console, specifying exactly why the operation was denied.
+
 ### 🏠 For Hostel Managers
 - **Property Management**: List hostels, define room types, and set pricing.
 - **Verification System**: Securely upload identity and property ownership documents for platform authorization.

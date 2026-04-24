@@ -2,204 +2,115 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // ===============================================================
-    // Assumed Data Model
+    // Global Safety Net
     // ===============================================================
-    // Collection: users
-    // Document ID: {userId} (matches Firebase Auth UID)
-    // Fields:
-    //   - uid: string (required)
-    //   - email: string (required)
-    //   - role: string (required, enum: 'student', 'manager', 'guest', 'admin')
-    //   - displayName: string (optional)
-    //   - phoneNumber: string (optional)
-    //   - createdAt: timestamp (required, immutable)
-    // ===============================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
 
-    // Helper Functions
-    function isAuthenticated() { return request.auth != null; }
-    function isOwner(userId) { return isAuthenticated() && request.auth.uid == userId; }
+    // ===============================================================
+    // Global Helpers
+    // ===============================================================
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
     function isAdmin() {
-      return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-          // ADMINISTRATOR SETUP: 
-          // Change "admin@gmail.com" to your actual email address before deploying
-          // so you don't get locked out of your own admin dashboard.
-          (request.auth.token.email == "admin@gmail.com" && request.auth.token.email_verified == true));
+      return isSignedIn() && (
+        // Database check
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        // Bootstrap check (Fallback for new projects/accounts)
+        (request.auth.token.email == "feraclem@gmail.com" && request.auth.token.email_verified == true)
+      );
     }
-    function hasOnlyAllowedFields(allowedFields) { return request.resource.data.keys().hasOnly(allowedFields); }
-    function isValidEmail(email) { return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"); }
 
-    // Domain Validators
+    // ===============================================================
+    // Entity Validators
+    // ===============================================================
     function isValidUser(data) {
-      return data.uid is string &&
-             data.email is string &&
+      return data.uid is string && data.uid.size() <= 128 &&
+             data.email is string && data.email.size() <= 256 &&
              data.role in ['student', 'manager', 'guest', 'admin'] &&
-             ( !('displayName' in data) || data.displayName is string ) &&
-             ( !('phoneNumber' in data) || data.phoneNumber is string ) &&
-             ( !('phoneVerified' in data) || data.phoneVerified is bool ) &&
-             data.createdAt is timestamp;
-    }
-
-    function isValidManagerVerification(data) {
-      return data.userId is string &&
-             ( !('managerName' in data) || data.managerName is string ) &&
-             ( !('managerEmail' in data) || data.managerEmail is string ) &&
-             data.idDocumentUrl is string &&
-             data.propertyProofUrl is string &&
-             data.status in ['pending', 'verified', 'rejected'] &&
-             data.submittedAt is timestamp &&
-             ( !('adminNotes' in data) || data.adminNotes is string ) &&
-             ( !('updatedAt' in data) || data.updatedAt is timestamp ) &&
-             ( !('user' in data) || data.user != null ); 
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+             (!('phoneNumber' in data) || (data.phoneNumber is string && data.phoneNumber.size() <= 20)) &&
+             data.createdAt == request.time;
     }
 
     function isValidHostel(data) {
-      return data.managerId is string &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.location is string && data.location.size() > 0 && data.location.size() < 100 &&
-             data.address is string && data.address.size() > 0 && data.address.size() < 200 &&
-             data.distanceFromCampus is number && data.distanceFromCampus >= 0 &&
-             data.amenities is list && data.amenities.size() <= 20 &&
-             data.images is list && data.images.size() <= 10 &&
-             data.rating is number && data.rating >= 0 && data.rating <= 5 &&
-             data.isVerified is bool &&
-             data.createdAt is timestamp;
-    }
-
-    function isValidRoom(data) {
-      return data.hostelId is string &&
-             data.roomNumber is string && data.roomNumber.size() > 0 && data.roomNumber.size() < 20 &&
-             data.type in ['1-in-a-room', '2-in-a-room', '3-in-a-room', '4-in-a-room'] &&
-             data.pricePerSemester is number && data.pricePerSemester >= 0 &&
-             data.capacity is number && data.capacity > 0 && data.capacity <= 4 &&
-             data.occupiedBeds is number && data.occupiedBeds >= 0 && data.occupiedBeds <= data.capacity &&
-             data.isAvailable is bool;
+      return data.managerId is string && data.managerId.size() <= 128 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.location is string && data.location.size() <= 100 &&
+             data.address is string && data.address.size() <= 200 &&
+             data.createdAt == request.time;
     }
 
     function isValidBooking(data) {
-      return data.hostelId is string &&
-             ( !('hostelName' in data) || data.hostelName is string ) &&
-             data.managerId is string &&
-             data.roomId is string &&
-             ( !('roomNumber' in data) || data.roomNumber is string ) &&
-             data.studentId is string &&
-             data.studentEmail is string &&
+      return data.studentId is string && data.studentId.size() <= 128 &&
+             data.hostelId is string && data.hostelId.size() <= 128 &&
              data.status in ['pending', 'confirmed', 'cancelled'] &&
              data.amount is number && data.amount >= 0 &&
-             data.paymentStatus in ['pending', 'paid'] &&
-             data.createdAt is timestamp &&
-             ( !('expiresAt' in data) || data.expiresAt is timestamp );
+             data.createdAt == request.time;
     }
 
-    function isValidReview(data) {
-      return data.hostelId is string &&
-             data.userId is string &&
-             data.userName is string && data.userName.size() > 0 && data.userName.size() < 100 &&
-             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
-             data.comment is string && data.comment.size() < 1000 &&
-             data.createdAt is timestamp;
-    }
-
-    function isValidComplaint(data) {
-      return data.userId is string &&
-             data.hostelId is string &&
-             data.managerId is string &&
-             data.title is string && data.title.size() > 0 && data.title.size() < 100 &&
-             data.message is string && data.message.size() > 0 && data.message.size() < 2000 &&
-             ( !('image' in data) || data.image is string ) &&
-             data.status in ['pending', 'in-progress', 'resolved'] &&
-             data.adminVisible is bool &&
-             ( !('managerResponse' in data) || data.managerResponse is string ) &&
-             data.createdAt is timestamp &&
-             data.updatedAt is timestamp &&
-             ( !('resolvedAt' in data) || data.resolvedAt is timestamp );
-    }
+    // ===============================================================
+    // Collection Matches
+    // ===============================================================
 
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) &&
-                       isValidUser(request.resource.data) &&
-                       request.resource.data.uid == userId &&
-                       request.resource.data.role in ['student', 'manager', 'guest']; // Cannot create admin directly
-                       
-      // PRO-DEV OPTIMIZATION: Only explicitly allowlist fields that a user can change. 
-      // This immediately fixes "insufficient permissions" caused by deep object equality checks on Timestamps, 
-      // while structurally preventing privilege escalation (e.g. they cannot change their 'role').
-      allow update: if (isOwner(userId) &&
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['phoneNumber', 'phoneVerified', 'displayName', 'updatedAt']) &&
-                       ( !('phoneNumber' in request.resource.data) || request.resource.data.phoneNumber is string ) &&
-                       ( !('phoneVerified' in request.resource.data) || request.resource.data.phoneVerified is bool ) &&
-                       ( !('displayName' in request.resource.data) || request.resource.data.displayName is string )) 
-                       || isAdmin();
-    }
-
-    match /managerVerifications/{verificationId} {
-      allow read: if isOwner(resource.data.userId) || isAdmin();
-      allow create: if isOwner(request.resource.data.userId) &&
-                       isValidManagerVerification(request.resource.data) &&
-                       request.resource.data.status == 'pending';
-      allow update: if isAdmin();
-    }
-
-    match /bookings/{bookingId} {
-      // PRO-DEV OPTIMIZATION: We check for the new optimized managerId field first (0(1) read). 
-      // If it's an old booking from before the optimization, we gracefully fallback to the original get() lookup so nothing breaks!
-      allow read: if isOwner(resource.data.studentId) || 
-                     ( 'managerId' in resource.data && isOwner(resource.data.managerId) ) || 
-                     ( !('managerId' in resource.data) && isOwner(get(/databases/$(database)/documents/hostels/$(resource.data.hostelId)).data.managerId) ) || 
-                     isAdmin();
-                     
-      allow create: if isOwner(request.resource.data.studentId) && isValidBooking(request.resource.data);
-      
-      allow update: if isOwner(resource.data.studentId) || 
-                     ( 'managerId' in resource.data && isOwner(resource.data.managerId) ) || 
-                     ( !('managerId' in resource.data) && isOwner(get(/databases/$(database)/documents/hostels/$(resource.data.hostelId)).data.managerId) ) || 
-                     isAdmin();
-    }
-
-    match /complaints/{complaintId} {
-      allow read: if isOwner(resource.data.userId) || isOwner(resource.data.managerId) || isAdmin();
-      allow create: if isOwner(request.resource.data.userId) && isValidComplaint(request.resource.data);
-      allow update: if isOwner(resource.data.managerId) || isAdmin();
-      allow delete: if isAdmin();
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().role != 'admin';
+      allow update: if (isOwner(userId) && 
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'phoneNumber', 'updatedAt']) &&
+                       (incoming().updatedAt == request.time)) || isAdmin();
     }
 
     match /hostels/{hostelId} {
-      allow read: if resource.data.isVerified == true || isOwner(resource.data.managerId) || isAdmin();
-      allow create: if isOwner(request.resource.data.managerId) && isValidHostel(request.resource.data);
-      allow update: if isOwner(resource.data.managerId) || isAdmin() ||
-                    (
-                      isAuthenticated() &&
-                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating']) &&
-                      request.resource.data.rating >= 0 && request.resource.data.rating <= 5
-                    );
+      allow read: if true; // Public listings
+      allow create: if isVerified() && isValidHostel(incoming()) && isOwner(incoming().managerId);
+      allow update: if (isOwner(existing().managerId) && 
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'location', 'address', 'amenities', 'images', 'updatedAt']) &&
+                       incoming().updatedAt == request.time) || isAdmin();
       allow delete: if isAdmin();
       
       match /rooms/{roomId} {
         allow read: if true;
-        allow create: if isOwner(get(/databases/$(database)/documents/hostels/$(hostelId)).data.managerId) || isAdmin();
-        allow update: if isOwner(get(/databases/$(database)/documents/hostels/$(hostelId)).data.managerId) || isAdmin() ||
-                      (
-                        isAuthenticated() && 
-                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['occupiedBeds', 'isAvailable']) &&
-                        request.resource.data.occupiedBeds == resource.data.occupiedBeds + 1 &&
-                        request.resource.data.isAvailable == (request.resource.data.occupiedBeds < resource.data.capacity)
-                      );
-        allow delete: if isOwner(get(/databases/$(database)/documents/hostels/$(hostelId)).data.managerId) || isAdmin();
+        allow write: if isOwner(get(/databases/$(database)/documents/hostels/$(hostelId)).data.managerId) || isAdmin();
       }
+    }
 
-      match /reviews/{reviewId} {
-        allow read: if true;
-        allow create: if isOwner(request.resource.data.userId) && isValidReview(request.resource.data);
-        allow update, delete: if isOwner(resource.data.userId) || isAdmin();
-      }
+    match /bookings/{bookingId} {
+      allow read: if isSignedIn() && (isOwner(existing().studentId) || isOwner(existing().managerId) || isAdmin());
+      allow create: if isVerified() && isValidBooking(incoming()) && isOwner(incoming().studentId);
+      allow update: if (isSignedIn() && (
+        (isOwner(existing().studentId) && incoming().status == 'cancelled' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
+        (isOwner(existing().managerId) && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'paymentStatus', 'updatedAt']))
+      ) && incoming().updatedAt == request.time) || isAdmin();
+    }
 
-      match /inquiries/{inquiryId} {
-        allow read: if isOwner(resource.data.managerId) || isAdmin();
-        allow create: if true; // Anyone can send an inquiry
-        allow update: if isOwner(resource.data.managerId) || isAdmin();
-        allow delete: if isOwner(resource.data.managerId) || isAdmin();
-      }
+    match /managerVerifications/{verificationId} {
+      allow read: if isSignedIn() && (isOwner(existing().userId) || isAdmin());
+      allow create: if isVerified() && isOwner(incoming().userId) && incoming().status == 'pending';
+      allow update: if isAdmin();
+    }
+    
+    match /complaints/{complaintId} {
+      allow read: if isSignedIn() && (isOwner(existing().userId) || isOwner(existing().managerId) || isAdmin());
+      allow create: if isVerified() && isOwner(incoming().userId);
+      allow update: if isAdmin() || isOwner(existing().managerId);
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isVerified() && isOwner(incoming().userId);
+      allow update, delete: if isOwner(existing().userId) || isAdmin();
     }
   }
 }
