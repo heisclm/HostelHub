@@ -60,6 +60,16 @@ service cloud.firestore {
              data.createdAt == request.time;
     }
 
+    function isValidAppNotification(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.type in ['booking', 'system', 'complaint', 'verification', 'inquiry'] &&
+             data.title is string && data.title.size() <= 256 &&
+             data.message is string && data.message.size() <= 1024 &&
+             data.isRead is bool &&
+             (!('actionUrl' in data) || (data.actionUrl is string && data.actionUrl.size() <= 1024)) &&
+             data.createdAt == request.time;
+    }
+
     // ===============================================================
     // Collection Matches
     // ===============================================================
@@ -106,10 +116,12 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      allow read: if isSignedIn() && existing().userId == request.auth.uid;
-      allow create: if isSignedIn(); // System logic or backend can create, but for client-side bookings it can be created by the user making the booking
-      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['isRead']);
-      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+      allow read: if isSignedIn() && (isOwner(existing().userId) || isAdmin());
+      allow create: if isVerified() && isValidAppNotification(incoming());
+      allow update: if isVerified() && isOwner(existing().userId) && 
+                       incoming().diff(existing()).affectedKeys().hasOnly(['isRead']) &&
+                       incoming().isRead == true;
+      allow delete: if isAdmin();
     }
 
     match /bookings/{bookingId} {
