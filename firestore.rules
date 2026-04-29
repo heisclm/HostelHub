@@ -83,9 +83,11 @@ service cloud.firestore {
     match /hostels/{hostelId} {
       allow read: if true; // Public listings
       allow create: if isVerified() && isValidHostel(incoming()) && isOwner(incoming().managerId);
-      allow update: if (isOwner(existing().managerId) && 
-                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'location', 'address', 'amenities', 'images', 'updatedAt']) &&
-                       incoming().updatedAt == request.time) || isAdmin();
+      allow update: if isAdmin() ||
+                       (isOwner(existing().managerId) && 
+                        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'location', 'address', 'amenities', 'images', 'policies', 'contactDetails', 'coordinates', 'updatedAt']) &&
+                        (!('updatedAt' in incoming()) || incoming().updatedAt == request.time)) ||
+                       (isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['rating']));
       allow delete: if isAdmin();
       
       match /rooms/{roomId} {
