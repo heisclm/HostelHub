@@ -8,25 +8,39 @@ export const submitReview = async (review: Omit<Review, 'id' | 'createdAt'>) => 
   try {
     const { getAuth } = await import('firebase/auth');
     const auth = getAuth();
-    const token = await auth.currentUser?.getIdToken();
+    if (!auth.currentUser) throw new Error("You must be logged in to submit a review.");
 
-    const response = await fetch('/api/reviews', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify(review),
+    const reviewData = {
+      ...review,
+      userId: auth.currentUser.uid,
+      userName: review.userName || auth.currentUser.displayName || 'Anonymous',
+      createdAt: serverTimestamp(),
+    };
+
+    const reviewRef = await addDoc(collection(db, path), reviewData);
+
+    // Calculate new average
+    const reviewsSnapshot = await getDocs(collection(db, path));
+    let totalRating = 0;
+    let count = 0;
+    reviewsSnapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.rating) {
+        totalRating += Number(data.rating);
+        count++;
+      }
     });
 
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || 'Failed to submit review');
-    }
+    const newAverage = count > 0 ? (totalRating / count) : review.rating;
 
-    const data = await response.json();
-    return data.reviewId;
+    // Update hostel document with new average
+    await updateDoc(doc(db, 'hostels', review.hostelId), {
+      rating: newAverage
+    });
+
+    return reviewRef.id;
   } catch (error: any) {
+    console.error('Error submitting review:', error);
     if (error instanceof Error && error.message.includes('{')) throw error;
     handleFirestoreError(error, 'write', path);
   }
