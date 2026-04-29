@@ -65,6 +65,21 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["studentId", "hostelId", "roomId", "status", "amount", "createdAt"]
+    },
+    "AppNotification": {
+      "title": "AppNotification",
+      "description": "Represents a system notification for a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["booking", "system", "complaint", "verification", "inquiry"] },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "actionUrl": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "title", "message", "isRead", "createdAt"]
     }
   },
   "firestore": {
@@ -83,6 +98,10 @@
     "/bookings/{bookingId}": {
       "schema": "Booking",
       "description": "Collection of bookings."
+    },
+    "/notifications/{notificationId}": {
+      "schema": "AppNotification",
+      "description": "Collection of system notifications for users."
     }
   }
 }
