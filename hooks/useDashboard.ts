@@ -50,8 +50,8 @@ export function useManagerDashboard(managerId: string | undefined) {
   const hostelIds = hostels?.map(h => h.id!) || [];
 
   const { data: bookings, error: bookingsError, isLoading: bookingsLoading, mutate: mutateBookings } = useSWR(
-    hostelIds.length > 0 ? `manager-bookings-${managerId}` : null,
-    () => getManagerBookings(hostelIds),
+    managerId ? `manager-bookings-${managerId}` : null,
+    () => getManagerBookings(managerId!),
     { revalidateOnFocus: false }
   );
 

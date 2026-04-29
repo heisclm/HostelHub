@@ -145,6 +145,13 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
     
+    match /inquiries/{inquiryId} {
+      allow read: if isSignedIn() && (isOwner(existing().managerId) || isAdmin());
+      allow create: if true;
+      allow update: if isSignedIn() && (isOwner(existing().managerId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+    
     match /complaints/{complaintId} {
       allow read: if isSignedIn() && (isOwner(existing().userId) || isOwner(existing().managerId) || isAdmin());
       allow create: if isVerified() && isOwner(incoming().userId);

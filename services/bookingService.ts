@@ -200,37 +200,25 @@ export const getStudentBookings = async (studentId: string) => {
   }
 };
 
-export const getManagerBookings = async (hostelIds: string[]) => {
-  if (!hostelIds || hostelIds.length === 0) return [];
+export const getManagerBookings = async (managerId: string) => {
+  if (!managerId) return [];
   
   try {
-    // Firestore 'in' query supports up to 30 items.
-    // If a manager has more than 30 hostels, we chunk the requests.
-    const chunks = [];
-    for (let i = 0; i < hostelIds.length; i += 30) {
-      chunks.push(hostelIds.slice(i, i + 30));
-    }
-
-    const allBookings: Booking[] = [];
-    
-    for (const chunk of chunks) {
-      const q = query(
-        collection(db, 'bookings'),
-        where('hostelId', 'in', chunk)
-      );
-      const querySnapshot = await getDocs(q);
-      const bookings = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Booking));
-      allBookings.push(...bookings);
-    }
+    const q = query(
+      collection(db, 'bookings'),
+      where('managerId', '==', managerId)
+    );
+    const querySnapshot = await getDocs(q);
+    const bookings = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Booking));
     
     // Sort all bookings by createdAt desc
-    allBookings.sort((a, b) => {
+    bookings.sort((a, b) => {
       const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
       const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
       return dateB - dateA;
     });
 
-    return allBookings;
+    return bookings;
   } catch (error: any) {
     console.error('Error getting manager bookings:', error);
     throw new Error(error.message || 'Failed to get manager bookings');
