@@ -87,7 +87,30 @@ export const getManagerVerificationStatus = async (userId: string) => {
 export const getAllVerifications = async () => {
   try {
     const querySnapshot = await getDocs(collection(db, 'managerVerifications'));
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ManagerVerification));
+    const verifications = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ManagerVerification));
+    
+    // Fetch user info for each verification
+    const verificationsWithUsers = await Promise.all(
+      verifications.map(async (v) => {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', v.userId));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            return {
+              ...v,
+              user: userData,
+              managerName: v.managerName !== 'Unknown' ? v.managerName : (userData.displayName || 'Unknown'),
+              managerEmail: v.managerEmail !== 'No email provided' ? v.managerEmail : (userData.email || 'No email provided')
+            };
+          }
+        } catch (e) {
+          console.error("Error fetching user for verification", e);
+        }
+        return v;
+      })
+    );
+    
+    return verificationsWithUsers;
   } catch (error: any) {
     console.error('Error getting all verifications:', error);
     throw new Error(error.message || 'Failed to get verifications');
