@@ -1,23 +1,14 @@
 import * as admin from 'firebase-admin';
 
-let firebaseConfig: any = { projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID };
-if (!firebaseConfig.projectId) {
-  try {
-    firebaseConfig = require('../firebase-applet-config.json');
-  } catch (e) {
-    console.warn("Firebase config not found for admin setup.");
-  }
-}
-
 if (!admin.apps.length) {
   try {
     const adminConfig: any = {
-      projectId: firebaseConfig.projectId,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
       credential: admin.credential.applicationDefault(),
     };
     if (process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
        adminConfig.credential = admin.credential.cert({
-         projectId: firebaseConfig.projectId,
+         projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
        });

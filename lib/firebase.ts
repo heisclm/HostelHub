@@ -4,8 +4,7 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 // Initialize Firebase SDK
-// Attempt to load from environment variables first (Preferred for Vercel/Production)
-const envConfig = {
+const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -15,20 +14,9 @@ const envConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Fallback to local config file if env vars are missing
-let firebaseConfig: any = envConfig;
-if (!envConfig.apiKey) {
-  try {
-    firebaseConfig = require('../firebase-applet-config.json');
-  } catch (e) {
-    console.warn("Firebase config not found. Please provide NEXT_PUBLIC_FIREBASE_* env vars.");
-  }
-}
-
 // We use getApps().length to prevent re-initializing the app during hot reloads in Next.js
-const app = !getApps().length && firebaseConfig?.apiKey ? initializeApp(firebaseConfig) : getApp();
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Firestore with the specific database ID if provided in the config
-export const db = getFirestore(app, firebaseConfig?.firestoreDatabaseId || undefined);
+export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
